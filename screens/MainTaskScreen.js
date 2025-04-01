@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -9,7 +9,8 @@ import {
   Animated, 
   Dimensions, 
   StyleSheet,
-  PanResponder 
+  PanResponder,
+  Image
 } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -62,9 +63,6 @@ const TaskCard = ({ task, onMove, onEdit, onDelete }) => {
         <TouchableOpacity onPress={() => onDelete(task.id)} style={styles.actionButton}>
           <Text>🗑️ Eliminar</Text>
         </TouchableOpacity>
-        {/* <TouchableOpacity onPress={() => {}} style={styles.actionButton}>
-          <Text>🔄 Detalles</Text>
-        </TouchableOpacity> */}
       </View>
     </Animated.View>
   );
@@ -199,14 +197,15 @@ const TaskFormModal = ({ visible, task, onSave, onClose }) => {
   );
 };
 
-const { width } = Dimensions.get('window');
-
-// Pantalla principal que muestra las categorías y tareas
-export default function MainTaskScreen() {
+// Nueva pantalla principal con scroll vertical
+export default function MainTaskScreen({ navigation }) {
   const categories = ['pendiente', 'proceso', 'terminado'];
   const [tasks, setTasks] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [currentTask, setCurrentTask] = useState(null);
+  const [currentCategory, setCurrentCategory] = useState('pendiente');
+  const scrollViewRef = useRef(null);
+  const newTaskAnimation = useRef(new Animated.Value(0)).current;
   
   // Cargar tareas desde AsyncStorage al iniciar
   useEffect(() => {
@@ -244,8 +243,22 @@ export default function MainTaskScreen() {
       // Actualizar tarea existente
       setTasks(tasks.map(t => t.id === task.id ? task : t));
     } else {
-      // Añadir nueva tarea
-      setTasks([...tasks, task]);
+      // Añadir nueva tarea y animar
+      const newTasks = [...tasks, task];
+      setTasks(newTasks);
+      
+      // Animar nueva tarea
+      newTaskAnimation.setValue(0);
+      Animated.timing(newTaskAnimation, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }).start();
+      
+      // Scroll hacia la nueva tarea
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
     }
   };
   
@@ -278,51 +291,102 @@ export default function MainTaskScreen() {
     ));
   };
   
+  const renderTasksByCategory = (category) => {
+    const categoryTasks = tasks.filter(task => task.status === category);
+    
+    return (
+      <Animated.View style={styles.categorySection}>
+        <View style={styles.categoryHeader}>
+          <Text style={styles.categoryTitle}>
+            {category.charAt(0).toUpperCase() + category.slice(1)}
+          </Text>
+          <Text style={styles.taskCount}>
+            {categoryTasks.length}
+          </Text>
+        </View>
+        
+        {categoryTasks.map((task, index) => {
+          const isLastAdded = index === categoryTasks.length - 1 && category === 'pendiente';
+          const animationStyle = isLastAdded ? {
+            opacity: newTaskAnimation,
+            transform: [
+              { translateY: newTaskAnimation.interpolate({
+                inputRange: [0, 1],
+                outputRange: [50, 0]
+              })}
+            ]
+          } : {};
+          
+          return (
+            <Animated.View key={task.id} style={animationStyle}>
+              <TaskCard
+                task={task}
+                onMove={handleMoveTask}
+                onEdit={handleEditTask}
+                onDelete={handleDeleteTask}
+              />
+            </Animated.View>
+          );
+        })}
+      </Animated.View>
+    );
+  };
+  
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}> {"<DevList>"} </Text>
-        <TouchableOpacity 
-          style={styles.addButton}
-          onPress={() => {
-            setCurrentTask(null);
-            setModalVisible(true);
-          }}
-        >
-          <Text style={styles.addButtonText}>+ Nueva tarea</Text>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity 
+            style={styles.addButton}
+            onPress={() => {
+              setCurrentTask(null);
+              setModalVisible(true);
+            }}
+          >
+            <Text style={styles.addButtonText}>+ Nueva tarea</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.profileButton}
+            onPress={() => navigation.navigate('Profile')}
+          >
+            <Image 
+              source={{ uri: 'https://via.placeholder.com/150' }} 
+              style={styles.profileIcon}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
       
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View style={styles.categoriesContainer}>
-          {categories.map(category => (
-            <View key={category} style={styles.categoryColumn}>
-              <View style={styles.categoryHeader}>
-                <Text style={styles.categoryTitle}>
-                  {category.charAt(0).toUpperCase() + category.slice(1)}
-                </Text>
-                <Text style={styles.taskCount}>
-                  {tasks.filter(task => task.status === category).length}
-                </Text>
-              </View>
-              
-              <ScrollView style={styles.tasksContainer}>
-                {tasks
-                  .filter(task => task.status === category)
-                  .map(task => (
-                    <TaskCard
-                      key={task.id}
-                      task={task}
-                      onMove={handleMoveTask}
-                      onEdit={handleEditTask}
-                      onDelete={handleDeleteTask}
-                    />
-                  ))
-                }
-              </ScrollView>
-            </View>
-          ))}
-        </View>
+      <View style={styles.categoryTabs}>
+        {categories.map(category => (
+          <TouchableOpacity
+            key={category}
+            style={[
+              styles.categoryTab,
+              currentCategory === category && styles.categoryTabActive
+            ]}
+            onPress={() => setCurrentCategory(category)}
+          >
+            <Text 
+              style={[
+                styles.categoryTabText,
+                currentCategory === category && styles.categoryTabTextActive
+              ]}
+            >
+              {category.charAt(0).toUpperCase() + category.slice(1)}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      
+      <ScrollView 
+        ref={scrollViewRef}
+        style={styles.taskListContainer}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.taskListContent}
+      >
+        {renderTasksByCategory(currentCategory)}
       </ScrollView>
       
       <TaskFormModal
@@ -335,7 +399,7 @@ export default function MainTaskScreen() {
   );
 }
 
-// Estilos de la aplicación
+// Estilos actualizados de la aplicación
 const styles = StyleSheet.create({
   // Estilos para la pantalla principal
   container: {
@@ -348,7 +412,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 50,
-    paddingBottom: 20,
+    paddingBottom: 15,
     backgroundColor: '#FFF',
     borderBottomWidth: 1,
     borderBottomColor: '#EEE',
@@ -358,37 +422,79 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   addButton: {
     backgroundColor: '#007bff',
     paddingHorizontal: 15,
     paddingVertical: 8,
     borderRadius: 8,
+    marginRight: 10,
   },
   addButtonText: {
     color: '#FFF',
     fontWeight: '600',
   },
-  
-  // Estilos para categorías
-  categoriesContainer: {
-    flexDirection: 'row',
-    padding: 10,
-    height: '100%',
+  profileButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#EEE',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#007bff',
   },
-  categoryColumn: {
-    width: width * 0.85,
-    marginHorizontal: 8,
-    backgroundColor: '#F0F2F5',
-    borderRadius: 12,
-    padding: 10,
-    height: '90%',
+  profileIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  
+  // Estilos para pestañas de categoría
+  categoryTabs: {
+    flexDirection: 'row',
+    backgroundColor: '#FFF',
+    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEE',
+  },
+  categoryTab: {
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  categoryTabActive: {
+    borderBottomColor: '#007bff',
+  },
+  categoryTabText: {
+    fontSize: 16,
+    color: '#666',
+  },
+  categoryTabTextActive: {
+    fontWeight: '600',
+    color: '#007bff',
+  },
+  
+  // Estilos para listas de tareas
+  taskListContainer: {
+    flex: 1,
+  },
+  taskListContent: {
+    padding: 15,
+  },
+  categorySection: {
+    marginBottom: 15,
   },
   categoryHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 10,
-    paddingHorizontal: 5,
   },
   categoryTitle: {
     fontSize: 18,
@@ -401,9 +507,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     color: '#666',
-  },
-  tasksContainer: {
-    flex: 1,
   },
   
   // Estilos para tarjetas de tareas

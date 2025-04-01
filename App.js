@@ -6,6 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 
 import MainTaskScreen from './screens/MainTaskScreen';
 import SplashScreenComponent from './screens/SplashScreen';
+import UserProfileScreen from './screens/UserProfileScreen';
 
 const Stack = createStackNavigator();
 
@@ -50,6 +51,11 @@ export default function App() {
         <Stack.Screen 
           name="Main" 
           component={MainTaskScreen} 
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen 
+          name="Profile" 
+          component={UserProfileScreen} 
           options={{ headerShown: false }}
         />
       </Stack.Navigator>

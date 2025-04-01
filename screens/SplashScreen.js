@@ -11,7 +11,7 @@ export default function SplashScreen({ onFinish }) {
   useEffect(() => {
     // Inicia la animación con Animated.timing
     Animated.timing(animationProgress, {
-      toValue: 1, // La animación avanza de 0 a 1
+      toValue: 5, // La animación avanza de 0 a 1
       duration: 10000, // Dura 3 segundos
       useNativeDriver: true, // Optimización para mejorar rendimiento
     }).start(() => {
@@ -31,7 +31,7 @@ export default function SplashScreen({ onFinish }) {
         onAnimationFinish={onFinish} // Cuando termina la animación, llama a onFinish()
       />
       {/* Título de la aplicación */}
-      <Text style={styles.splashText}>TaskPro</Text>
+      <Text style={styles.splashText}>{"<DevList>"}</Text>
       {/* Descripción de la aplicación */}
       <Text style={styles.splashSubtext}>Gestor de Tareas para Programadores</Text>
     </View>
