@@ -49,7 +49,7 @@ export default function App() {
     <NavigationContainer>
       <Stack.Navigator>
         <Stack.Screen 
-          name="Main" 
+          name="Gestor de tareas" 
           component={MainTaskScreen} 
           options={{ headerShown: false }}
         />

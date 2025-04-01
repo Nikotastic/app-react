@@ -10,19 +10,34 @@ import {
   Alert
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
 
 export default function UserProfileScreen({ navigation }) {
   const [user, setUser] = useState({
     name: '',
     email: '',
     role: 'Desarrollador',
-    avatar: 'https://via.placeholder.com/150'
+    avatar: 'https://st3.depositphotos.com/1007566/13175/v/450/depositphotos_131750410-stock-illustration-woman-female-avatar-character.jpg'
   });
   const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     loadUserData();
   }, []);
+
+  useEffect(() => {
+    const updateNavigationAvatar = () => {
+      navigation.setOptions({
+        headerRight: () => (
+          <Image 
+            source={{ uri: user.avatar }} 
+            style={{ width: 40, height: 40, borderRadius: 20, marginRight: 10 }}
+          />
+        )
+      });
+    };
+    updateNavigationAvatar();
+  }, [user.avatar, navigation]);
 
   const loadUserData = async () => {
     try {
@@ -46,6 +61,19 @@ export default function UserProfileScreen({ navigation }) {
     }
   };
 
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setUser({ ...user, avatar: result.assets[0].uri });
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -60,10 +88,12 @@ export default function UserProfileScreen({ navigation }) {
 
       <ScrollView style={styles.content}>
         <View style={styles.profileHeader}>
-          <Image 
-            source={{ uri: user.avatar }}
-            style={styles.avatar}
-          />
+          <TouchableOpacity onPress={pickImage}>
+            <Image 
+              source={{ uri: user.avatar }}
+              style={styles.avatar}
+            />
+          </TouchableOpacity>
           {!isEditing ? (
             <Text style={styles.username}>{user.name || 'Usuario'}</Text>
           ) : (
@@ -144,6 +174,7 @@ export default function UserProfileScreen({ navigation }) {
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
