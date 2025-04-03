@@ -1,388 +1,308 @@
-import React, { useState, useRef, useCallback } from "react";
-import {
-  View,
-  StyleSheet,
-  TouchableOpacity,
-  Modal,
-  Dimensions,
-} from "react-native";
-import {
-  Text,
-  TextInput,
-  Card,
-  Title,
-  Button,
-  FAB,
-  Portal,
-  Dialog,
-  Paragraph,
-} from "react-native-paper";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import DraggableFlatList from "react-native-draggable-flatlist";
-import Swipeable from "react-native-gesture-handler/Swipeable";
-import * as Haptics from "expo-haptics";
-import { useEffect } from "react";
-
-
-const { width } = Dimensions.get("window");
-const SECTION_WIDTH = width * 0.3;
-
-// Opciones de retroalimentación táctil
-const hapticOptions = {
-  enableVibrateFallback: true,
-  ignoreAndroidSystemSettings: false,
-};
-
-const MainTaskScreen = () => {
-  const [tasks, setTasks] = useState({
-    pendientes: [],
-    enProceso: [],
-    terminadas: [],
-  });
-  const [newTask, setNewTask] = useState("");
-  const [modalVisible, setModalVisible] = useState(false);
-  const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
-  const [selectedTask, setSelectedTask] = useState(null);
-  const [selectedSection, setSelectedSection] = useState(null);
-
-  useEffect(() => {
-    console.log("Estado actual de tasks:", tasks);
-    //alert("Mira la consola, tasks actualizado!"); // Esto mostrará un pop-up en el celular
-  }, [tasks]);
-  
-  
-  // Referencias para componentes Swipeable
-  const swipeableRefs = useRef({});
-
-  // Agregar una nueva tarea
-  const addTask = () => {
-    if (newTask.trim()) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-      setTasks((prev) => ({
-        ...prev,
-        pendientes: [
-          ...prev.pendientes,
-          {
-            id: Date.now().toString(),
-            title: newTask,
-            createdAt: new Date(),
-          },
-        ],
-      }));
-
-      setTimeout(() => {
-        setNewTask("");
-        setModalVisible(false);
-      }, 100);
-    }
-  };
-
-  // Mover una tarea a otra sección
-  const moveTask = (task, fromSection, toSection) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); // Usar Haptics correctamente en Expo
-
-    setTasks((prev) => {
-      // Evita modificar directamente el estado
-      const updatedTasks = {
-        ...prev,
-        [fromSection]: prev[fromSection].filter((t) => t.id !== task.id),
-        [toSection]: [...prev[toSection], { ...task, updatedAt: new Date() }],
-      };
-
-      console.log("Estado actualizado después de mover:", updatedTasks);
-      return updatedTasks;
-    });
-  };
-
-  // Reordenar tareas dentro de una misma sección
-  const reorderTasks = (sectionKey, data) => {
-    setTasks((prev) => ({
-      ...prev,
-      [sectionKey]: data,
-    }));
-  };
-
-  // Preparar la eliminación de una tarea
-  const prepareDeleteTask = (task, section) => {
-    setSelectedTask(task);
-    setSelectedSection(section);
-    setDeleteDialogVisible(true);
-  };
-
-  // Eliminar una tarea
-  const deleteTask = () => {
-    if (!selectedTask || !selectedSection) return;
-
-    ReactNativeHapticFeedback.trigger("notificationWarning", hapticOptions);
-    setTasks((prev) => ({
-      ...prev,
-      [selectedSection]: prev[selectedSection].filter(
-        (t) => t.id !== selectedTask.id
-      ),
-    }));
-    setDeleteDialogVisible(false);
-  };
-
-  // Renderizar una tarea individual
-  const renderTaskItem = useCallback((item, section, drag) => {
-    const renderRightActions = () => {
-      return (
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => prepareDeleteTask(item, section)}
-        >
-          <MaterialCommunityIcons name="delete" size={26} color="white" />
-        </TouchableOpacity>
-      );
-
-
-      
-    };
-
-    console.log(tasks);
-      
-
-    return (
-      <Swipeable
-        ref={(ref) => {
-          if (ref) {
-            swipeableRefs.current[item.id] = ref;
-          }
-        }}
-        renderRightActions={renderRightActions}
-      >
-        <TouchableOpacity
-          onLongPress={drag}
-          activeOpacity={0.7}
-          style={styles.taskContainer}
-        >
-          <Card style={styles.taskCard}>
-            <Card.Content>
-              <Title style={styles.taskTitle}>{item.title}</Title>
-              <View style={styles.taskActions}>
-                {section !== "pendientes" && (
-                  <TouchableOpacity
-                    onPress={() => moveTask(item, section, "pendientes")}
-                    style={styles.actionButton}
-                  >
-                    <MaterialCommunityIcons
-                      name="arrow-left"
-                      size={24}
-                      color="#4CAF50"
-                    />
-                  </TouchableOpacity>
-                )}
-                {section !== "terminadas" && (
-                  <TouchableOpacity
-                    onPress={() =>
-                      moveTask(
-                        item,
-                        section,
-                        section === "pendientes" ? "enProceso" : "terminadas"
-                      )
-                    }
-                    style={styles.actionButton}
-                  >
-                    <MaterialCommunityIcons
-                      name="arrow-right"
-                      size={24}
-                      color="#4CAF50"
-                    />
-                  </TouchableOpacity>
-                )}
-              </View>
-            </Card.Content>
-          </Card>
-        </TouchableOpacity>
-      </Swipeable>
-    );
-  }, []);
-
-  // Renderizar una sección de tareas
-  const renderTaskSection = (title, sectionKey) => {
-    return (
-      <View style={styles.section}>
-        <Card style={styles.sectionCard}>
-          <Card.Title title={title} titleStyle={styles.sectionTitle} />
-          <Card.Content style={styles.sectionContent}>
-            <DraggableFlatList
-              data={[...tasks[sectionKey]]} // Crear nueva referencia para forzar re-render
-              renderItem={({ item, drag }) => renderTaskItem(item, sectionKey, drag)}
-              keyExtractor={(item) => item.id}
-              onDragEnd={({ data }) => reorderTasks(sectionKey, data)}
-              activationDistance={10}
-            />
-          </Card.Content>
-        </Card>
-      </View>
-    );
-  };
-
-  return (
-    <View style={styles.container}>
-      {/* FAB para agregar nuevas tareas */}
-      <FAB
-        style={styles.fab}
-        icon="plus"
-        onPress={() => setModalVisible(true)}
-        label="Nueva Tarea"
-      />
-
-      {/* Modal para crear una nueva tarea */}
-      <Portal>
-        <Modal
-          visible={modalVisible}
-          onDismiss={() => setModalVisible(false)}
-          contentContainerStyle={styles.modalContent}
-        >
-          <Title style={styles.modalTitle}>Nueva tarea</Title>
-          <TextInput
-            label="Nombre de la tarea"
-            value={newTask}
-            onChangeText={setNewTask}
-            mode="outlined"
-            style={[styles.input]}
-            textColor="white"
-          />
-          <View style={styles.modalButtons}>
-            <Button
-              mode="contained"
-              onPress={addTask}
-              style={styles.button}
-              disabled={!newTask.trim()}
-            >
-              Crear
-            </Button>
-            <Button
-              mode="outlined"
-              onPress={() => setModalVisible(false)}
-              style={styles.button}
-            >
-              Cancelar
-            </Button>
-          </View>
-        </Modal>
-      </Portal>
-
-      {/* Diálogo de confirmación para eliminar tarea */}
-      <Portal>
-        <Dialog
-          visible={deleteDialogVisible}
-          onDismiss={() => setDeleteDialogVisible(false)}
-        >
-          <Dialog.Title>Eliminar tarea</Dialog.Title>
-          <Dialog.Content>
-            <Paragraph>
-              ¿Estás seguro de que deseas eliminar esta tarea?
-            </Paragraph>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setDeleteDialogVisible(false)}>
-              Cancelar
-            </Button>
-            <Button onPress={deleteTask}>Eliminar</Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
-
-      {/* Contenedor de secciones */}
-      <View style={styles.sectionsContainer}>
-        {renderTaskSection("Pendientes", "pendientes")}
-        {renderTaskSection("En Proceso", "enProceso")}
-        {renderTaskSection("Terminadas", "terminadas")}
-      </View>
-    </View>
-  );
-};
-
-
-  
-
+// Estilos actualizados de la aplicación
 const styles = StyleSheet.create({
+  // Estilos para la pantalla principal
   container: {
     flex: 1,
-    backgroundColor: "#121212",
-    padding: 10,
+    backgroundColor: "#F5F7FB",
   },
-  sectionsContainer: {
+  header: {
     flexDirection: "row",
-    flex: 1,
-    paddingTop: 10,
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 15,
+    backgroundColor: "#FFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#EEE",
   },
-  section: {
-    flex: 1,
-    marginHorizontal: 5,
-  },
-  sectionCard: {
-    backgroundColor: "#1E1E1E",
-    height: "100%",
-  },
-  sectionTitle: {
-    color: "#FFFFFF",
-    textAlign: "center",
-    fontSize: 16,
+  headerTitle: {
+    fontSize: 24,
     fontWeight: "bold",
+    color: "#333",
   },
-  sectionContent: {
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  addButton: {
+    backgroundColor: "#007bff",
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginRight: 10,
+  },
+  addButtonText: {
+    color: "#FFF",
+    fontWeight: "600",
+  },
+  profileButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#EEE",
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+    borderWidth: 2,
+    borderColor: "#007bff",
+  },
+  profileIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+
+  // Estilos para pestañas de categoría
+  categoryTabs: {
+    flexDirection: "row",
+    backgroundColor: "#FFF",
+    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#EEE",
+  },
+  categoryTab: {
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderBottomWidth: 2,
+    borderBottomColor: "transparent",
+  },
+  categoryTabActive: {
+    borderBottomColor: "#007bff",
+  },
+  categoryTabText: {
+    fontSize: 16,
+    color: "#666",
+  },
+  categoryTabTextActive: {
+    fontWeight: "600",
+    color: "#007bff",
+  },
+
+  // Estilos para listas de tareas
+  taskListContainer: {
     flex: 1,
   },
-  taskContainer: {
-    marginVertical: 5,
+  taskListContent: {
+    padding: 15,
   },
+  categorySection: {
+    marginBottom: 15,
+  },
+  categoryHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  categoryTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
+  },
+  taskCount: {
+    backgroundColor: "#DDD",
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    color: "#666",
+  },
+
+  // Estilos para tarjetas de tareas
   taskCard: {
-    backgroundColor: "#2C2C2C",
+    backgroundColor: "#FFF",
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   taskTitle: {
-    color: "white",
-    fontSize: 20,
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 5,
+    color: "#333",
+  },
+  taskDescription: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 10,
+  },
+  taskDates: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  dateText: {
+    fontSize: 12,
+    color: "#888",
+  },
+  priorityTag: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+    color: "#FFF",
+    fontSize: 10,
+    fontWeight: "600",
+    marginBottom: 10,
   },
   taskActions: {
     flexDirection: "row",
-    justifyContent: "flex-end",
-    marginTop: 8,
+    justifyContent: "space-between",
+    borderTopWidth: 1,
+    borderTopColor: "#EEE",
+    paddingTop: 10,
   },
   actionButton: {
-    padding: 8,
-    marginHorizontal: 5,
+    padding: 5,
   },
-  deleteButton: {
-    backgroundColor: "#CF6679",
+
+  // Estilos para el modal
+  modalBackground: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
-    width: 80,
-    marginVertical: 5,
   },
-  fab: {
-    position: "absolute",
-    margin: 16,
-    right: 0,
-    bottom: 0,
-    zIndex: 1,
-  },
-  modalContent: {
-    backgroundColor: "#1E1E1E",
+  modalContainer: {
+    backgroundColor: "#FFF",
+    borderRadius: 12,
     padding: 20,
-    margin: 20,
-    borderRadius: 10,
+    width: "90%",
+    maxHeight: "80%",
   },
   modalTitle: {
-    color: "black",
+    fontSize: 18,
+    fontWeight: "600",
     marginBottom: 15,
     textAlign: "center",
   },
   input: {
-    marginBottom: 20,
-    backgroundColor: "#2C2C2C",
+    borderWidth: 1,
+    borderColor: "#DDD",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 15,
+    fontSize: 16,
   },
-
+  textArea: {
+    height: 100,
+    textAlignVertical: "top",
+  },
+  inputLabel: {
+    fontSize: 16,
+    marginBottom: 8,
+    color: "#333",
+  },
+  prioritySelector: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 15,
+  },
+  priorityButton: {
+    flex: 1,
+    padding: 10,
+    borderRadius: 8,
+    alignItems: "center",
+    marginHorizontal: 4,
+    borderWidth: 1,
+    borderColor: "#DDD",
+  },
+  priorityButtonSelected: {
+    borderColor: "#007bff",
+    borderWidth: 2,
+  },
+  priorityButtonText: {
+    fontWeight: "500",
+  },
+  dateButton: {
+    borderWidth: 1,
+    borderColor: "#DDD",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 15,
+  },
+  dateButtonText: {
+    color: "#333",
+  },
+  calendar: {
+    marginBottom: 15,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#DDD",
+  },
   modalButtons: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    justifyContent: "space-between",
   },
-  button: {
-    width: "45%",
+  cancelButton: {
+    backgroundColor: "#6c757d",
+    borderRadius: 8,
+    padding: 12,
+    alignItems: "center",
+    flex: 1,
+    marginRight: 8,
+  },
+  saveButton: {
+    backgroundColor: "#007bff",
+    borderRadius: 8,
+    padding: 12,
+    alignItems: "center",
+    flex: 1,
+    marginLeft: 8,
+  },
+  disabledButton: {
+    backgroundColor: "#A9A9A9",
+  },
+  buttonText: {
+    color: "#FFF",
+    fontWeight: "600",
+    fontSize: 16,
+  },
+  calendar: {
+    marginBottom: 15,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#DDD",
+  },
+  modalBackground: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContainer: {
+    backgroundColor: "#FFF",
+    borderRadius: 12,
+    padding: 20,
+    width: "90%",
+    maxHeight: "80%",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  modalText: {
+    fontSize: 16,
+    marginBottom: 10,
+    color: "#333",
+  },
+  cancelButton: {
+    backgroundColor: "#6c757d",
+    borderRadius: 8,
+    padding: 12,
+    alignItems: "center",
+    marginTop: 15,
+  },
+  buttonText: {
+    color: "#FFF",
+    fontWeight: "600",
+    fontSize: 16,
   },
 });
-
-export default MainTaskScreen
