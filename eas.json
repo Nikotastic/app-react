@@ -1,0 +1,23 @@
+{
+    "build": {
+      "development": {
+        "developmentClient": true,
+        "distribution": "internal",
+        "android": {
+          "newArchEnabled": true
+        },
+        "ios": {
+          "newArchEnabled": true
+        }
+      },
+      "production": {
+        "android": {
+          "newArchEnabled": true
+        },
+        "ios": {
+          "newArchEnabled": true
+        }
+      }
+    }
+  }
+  
