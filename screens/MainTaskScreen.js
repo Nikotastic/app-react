@@ -133,7 +133,7 @@ const TaskFormModal = ({ visible, task, onSave, onClose }) => {
   const handleSave = () => {
     const today = formatDate(new Date());
     const updatedTask = {
-      id: task ? task.id : Date.now().toString(), // Genera un id único si no existe
+      id: task ? task.id : Date.now().toString(), 
       title,
       description,
       priority,
@@ -219,6 +219,7 @@ const TaskFormModal = ({ visible, task, onSave, onClose }) => {
               markedDates={{
                 [dueDate]: { selected: true, selectedColor: "#007bff" },
               }}
+              minDate={new Date().toISOString().split("T")[0]} // Bloquea fechas pasadas para evitar selección
               style={styles.calendar}
             />
           )}
@@ -778,4 +779,5 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 16,
   },
+  
 });
