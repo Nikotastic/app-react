@@ -1,16 +1,23 @@
-import React, { useEffect, useState } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import { StatusBar } from 'expo-status-bar';
-import * as SplashScreen from 'expo-splash-screen';
+import * as AuthSession from "expo-auth-session"; 
+import React, { useEffect, useState } from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import { createStackNavigator } from "@react-navigation/stack";
+import { StatusBar } from "expo-status-bar";
+import * as SplashScreen from "expo-splash-screen";
+import MainTaskScreen from "./screens/MainTaskScreen";
+import SplashScreenComponent from "./screens/SplashScreen";
+import UserProfileScreen from "./screens/UserProfileScreen";
+import SignInScreen from "./screens/SignInScreen";
+import * as WebBrowser from 'expo-web-browser';
 
-import MainTaskScreen from './screens/MainTaskScreen';
-import SplashScreenComponent from './screens/SplashScreen';
-import UserProfileScreen from './screens/UserProfileScreen';
+console.log(AuthSession.makeRedirectUri({ useProxy: true }));
 
 const Stack = createStackNavigator();
+WebBrowser.maybeCompleteAuthSession();
+// Mantener el splash nativo de Expo visible
 
 export default function App() {
+  const [] = React.useState(false);
   const [isReady, setIsReady] = useState(false);
   const [appIsReady, setAppIsReady] = useState(false);
 
@@ -31,31 +38,31 @@ export default function App() {
     setIsReady(true);
   };
 
-  useEffect(() => {
-    if (appIsReady) {
-      SplashScreen.hideAsync();
-    }
-  }, [appIsReady]);
-
   if (!appIsReady) {
-    return null;
+    return null; // Esperar a que todo esté listo
   }
 
   if (!isReady) {
-    return <SplashScreenComponent onFinish={handleSplashFinish} />;
+    return <SplashScreenComponent onFinish={handleSplashFinish} />; // Mostrar tu animación
   }
+
 
   return (
     <NavigationContainer>
-      <Stack.Navigator>
-        <Stack.Screen 
-          name="Gestor de tareas" 
-          component={MainTaskScreen} 
+      <Stack.Navigator initialRouteName="SignIn">
+        <Stack.Screen
+          name="SignIn"
+          component={SignInScreen}
           options={{ headerShown: false }}
         />
-        <Stack.Screen 
-          name="Profile" 
-          component={UserProfileScreen} 
+        <Stack.Screen
+          name="Gestor de tareas"
+          component={MainTaskScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Profile"
+          component={UserProfileScreen}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>

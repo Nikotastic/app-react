@@ -1,61 +1,59 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
-import LottieView from 'lottie-react-native'; // Importa la librería para animaciones 
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import LottieView from 'lottie-react-native';
+import * as SplashScreen from 'expo-splash-screen'; 
 
-export default function SplashScreen({ onFinish }) {
-  const [animationProgress] = useState(new Animated.Value(0));
+export default function SplashScreenComponent({ onFinish }) {
+  const animationRef = useRef(null);
 
-  // useEffect se ejecuta cuando el componente se monta
   useEffect(() => {
-    // Inicia la animación con Animated.timing
-    Animated.timing(animationProgress, {
-      toValue: 5, // La animación avanza de 0 a 1
-      duration: 3000, // Dura 3 segundos
-      useNativeDriver: true, // Optimización para mejorar rendimiento
-    }).start(() => {
-      // Cuando la animación finaliza, se llama a la función onFinish()
-      onFinish();
-    });
+    // ✅ Oculta el splash nativo de Expo
+    SplashScreen.hideAsync();
+
+    // Espera 7 segundos y luego llama a onFinish
+    const timer = setTimeout(() => {
+      animationRef.current?.pause(); // Opcional: pausar la animación
+      onFinish(); // Ir a la siguiente pantalla
+    }, 7000);
+
+    return () => clearTimeout(timer); // Limpia el temporizador
   }, []);
 
   return (
     <View style={styles.splashContainer}>
       <LottieView
-        source={require('../assets/animacion.json')} // Carga el archivo de animación
-        style={styles.lottieAnimation} // Aplica los estilos
-        autoPlay // Reproduce la animación automáticamente
-        loop={true} 
-        onAnimationFinish={onFinish} // Cuando termina la animación, llama a onFinish()
+        ref={animationRef}
+        source={require('../assets/animacion.json')}
+        style={styles.lottieAnimation}
+        autoPlay
+        loop={true}
       />
-      {/* Título de la aplicación */}
       <Text style={styles.splashText}>{"<DevList>"}</Text>
       <Text style={styles.splashSubtext}>Gestor de Tareas para Programadores</Text>
     </View>
   );
 }
 
-// Estilos 
 const styles = StyleSheet.create({
   splashContainer: {
-    flex: 1, 
-    backgroundColor: '#F5F7FB', 
-    alignItems: 'center', 
-    justifyContent: 'center', 
+    flex: 1,
+    backgroundColor: '#F5F7FB',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   lottieAnimation: {
-    width: 200, 
-    height: 200, 
+    width: 200,
+    height: 200,
   },
   splashText: {
     fontSize: 32,
-    fontWeight: 'bold', 
-    marginTop: 20, 
-    color: '#333', 
+    fontWeight: 'bold',
+    marginTop: 20,
+    color: '#333',
   },
   splashSubtext: {
-    fontSize: 16, 
-    color: '#666', 
-    marginTop: 8, 
+    fontSize: 16,
+    color: '#666',
+    marginTop: 8,
   },
 });
-

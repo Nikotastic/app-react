@@ -62,18 +62,35 @@ export default function UserProfileScreen({ navigation }) {
   };
 
   const pickImage = async () => {
+    // Solicita permisos para acceder a la galería
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  
+    if (!permissionResult.granted) {
+      Alert.alert('Permiso denegado', 'Se necesita acceso a la galería para seleccionar una imagen.');
+      return;
+    }
+  
+    // Abre la galería para seleccionar una imagen
     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
+      aspect: [1, 1], // Relación de aspecto 1:1 para imágenes cuadradas
+      quality: 1, // Calidad máxima
     });
-
+  
     if (!result.canceled) {
-      setUser({ ...user, avatar: result.assets[0].uri });
+      const newAvatar = result.assets[0].uri;
+  
+      // Actualiza el estado del usuario
+      setUser({ ...user, avatar: newAvatar });
+  
+      // Guarda el avatar en AsyncStorage
+      try {
+        await AsyncStorage.setItem('userAvatar', newAvatar);
+      } catch (error) {
+        console.error('Error al guardar el avatar:', error);
+      }
     }
   };
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>

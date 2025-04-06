@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { Calendar } from "react-native-calendars";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native"; 
 
 // Componente individual de Tarea
 const TaskCard = ({ task, onMove, onEdit, onDelete }) => {
@@ -245,7 +246,7 @@ const TaskFormModal = ({ visible, task, onSave, onClose }) => {
   );
 };
 
-export default function MainTaskScreen({ navigation }) {
+export default function MainTaskScreen({ navigation, route }) {
   const categories = ["pendiente", "proceso", "terminado"];
   const [tasks, setTasks] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -253,7 +254,25 @@ export default function MainTaskScreen({ navigation }) {
   const [currentCategory, setCurrentCategory] = useState("pendiente");
   const [markedDates, setMarkedDates] = useState({});
   const [calendarVisible, setCalendarVisible] = useState(false);
+  const [avatar, setAvatar] = useState(null);
   const scrollViewRef = useRef(null);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const loadAvatar = async () => {
+        try {
+          const storedAvatar = await AsyncStorage.getItem("userAvatar");
+          if (storedAvatar) {
+            setAvatar(storedAvatar);
+          }
+        } catch (error) {
+          console.error("Error al cargar el avatar:", error);
+        }
+      };
+
+      loadAvatar();
+    }, [])
+  );
 
   // Cargar tareas desde AsyncStorage al iniciar
   useEffect(() => {
@@ -285,6 +304,7 @@ export default function MainTaskScreen({ navigation }) {
       saveTasks();
     }
   }, [tasks]);
+
 
   // Actualizar fechas marcadas en el calendario
   useEffect(() => {
