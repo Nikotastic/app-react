@@ -2,6 +2,7 @@
   "expo": {
     "name": "TaskPro",
     "slug": "task-pro",
+    "owner": "nikotastic12",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,43 +8,50 @@ import {
   Animated,
   Image,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { AntDesign } from "@expo/vector-icons";
 import * as Google from "expo-auth-session/providers/google";
-import { auth } from "../firebaseConfig"; 
+import { auth } from "../firebaseConfig";
 import { GoogleAuthProvider, signInWithCredential } from "firebase/auth";
 import * as AuthSession from "expo-auth-session";
 
 const { width } = Dimensions.get("window");
 
 export default function SignInScreen({ navigation }) {
+  const [loading, setLoading] = useState(false);
+
   const redirectUri = AuthSession.makeRedirectUri({
     useProxy: true,
   });
-  console.log(" Redirect URI:", redirectUri); 
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     expoClientId:
-      "755391250795-il0scie5e3894d7a2l7rfpu92avvcu4n.apps.googleusercontent.com",
-    androidClientId: '755391250795-0bl18ojbej0dk2kcu46045g2vvk34vli.apps.googleusercontent.com',
+      "830348934929-3pjtt2ge6tb2mk5usntro7humrib9rj8.apps.googleusercontent.com",
+    androidClientId:
+      "830348934929-c5dmohgck08kj4ehlduhhc6t5no1an5v.apps.googleusercontent.com",
+    selectAccount: true,
+    useProxy: true,
     redirectUri,
   });
 
   useEffect(() => {
-    const uri = AuthSession.makeRedirectUri({ useProxy: true });
-
     if (response?.type === "success") {
+      setLoading(true);
       const { id_token } = response.params;
       const credential = GoogleAuthProvider.credential(id_token);
 
       signInWithCredential(auth, credential)
         .then(() => {
           Alert.alert("Inicio de sesión exitoso", "¡Bienvenido!");
-          navigation.navigate("Gestor de tareas"); // Navegar a la pantalla principal
+          navigation.navigate("Gestor de tareas");
         })
         .catch((error) => {
           Alert.alert("Error al iniciar sesión", error.message);
+        })
+        .finally(() => {
+          setLoading(false);
         });
     }
   }, [response]);
@@ -72,12 +79,18 @@ export default function SignInScreen({ navigation }) {
         <Text style={styles.subtitle}>Sign in with Google to continue</Text>
 
         <TouchableOpacity
-          style={styles.googleButton}
+          style={[styles.googleButton, loading && { opacity: 0.7 }]}
           onPress={() => promptAsync()}
-          disabled={!request}
+          disabled={!request || loading}
         >
-          <AntDesign name="google" size={24} color="white" />
-          <Text style={styles.googleButtonText}>Sign In with Google</Text>
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <>
+              <AntDesign name="google" size={24} color="white" />
+              <Text style={styles.googleButtonText}>Sign In with Google</Text>
+            </>
+          )}
         </TouchableOpacity>
       </View>
     </View>

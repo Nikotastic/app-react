@@ -13,10 +13,10 @@ import {
 } from "react-native";
 import { Calendar } from "react-native-calendars";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useFocusEffect } from "@react-navigation/native"; 
+import { useFocusEffect } from "@react-navigation/native";
 
 // Componente individual de Tarea
-const TaskCard = ({ task, onMove, onEdit, onDelete }) => {
+const TaskCard = React.forwardRef(({ task, onMove, onEdit, onDelete }, ref) => {
   const getPriorityColor = () => {
     switch (task.priority) {
       case "alta":
@@ -65,6 +65,7 @@ const TaskCard = ({ task, onMove, onEdit, onDelete }) => {
 
   return (
     <Animated.View
+      ref={ref} // Asigna la referencia
       {...panResponder.panHandlers}
       style={[
         styles.taskCard,
@@ -102,7 +103,7 @@ const TaskCard = ({ task, onMove, onEdit, onDelete }) => {
       </View>
     </Animated.View>
   );
-};
+});
 
 // Modal para crear/editar tareas
 const TaskFormModal = ({ visible, task, onSave, onClose }) => {
@@ -134,7 +135,7 @@ const TaskFormModal = ({ visible, task, onSave, onClose }) => {
   const handleSave = () => {
     const today = formatDate(new Date());
     const updatedTask = {
-      id: task ? task.id : Date.now().toString(), 
+      id: task ? task.id : Date.now().toString(),
       title,
       description,
       priority,
@@ -256,6 +257,9 @@ export default function MainTaskScreen({ navigation, route }) {
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [avatar, setAvatar] = useState(null);
   const scrollViewRef = useRef(null);
+  const taskRefs = useRef({}); // Usar useRef para almacenar referencias a las tareas
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [tasksForSelectedDate, setTasksForSelectedDate] = useState([]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -305,7 +309,6 @@ export default function MainTaskScreen({ navigation, route }) {
     }
   }, [tasks]);
 
-
   // Actualizar fechas marcadas en el calendario
   useEffect(() => {
     const updateMarkedDates = () => {
@@ -319,11 +322,14 @@ export default function MainTaskScreen({ navigation, route }) {
               : task.priority === "media"
               ? "#FFB946"
               : "#4CAF50";
-          newMarkedDates[formattedDate] = {
-            selected: true,
-            marked: true,
-            selectedColor: color,
-          };
+          if (!newMarkedDates[formattedDate]) {
+            newMarkedDates[formattedDate] = {
+              dots: [{ color }], // Agrega un círculo de color
+              selected: false,
+            };
+          } else {
+            newMarkedDates[formattedDate].dots.push({ color });
+          }
         }
       });
       setMarkedDates(newMarkedDates);
@@ -331,6 +337,23 @@ export default function MainTaskScreen({ navigation, route }) {
 
     updateMarkedDates();
   }, [tasks]);
+
+  // Función para manejar la selección de una tarea desde el calendario
+  const handleTaskSelectionFromCalendar = (task) => {
+    setCurrentCategory(task.status); // Cambia a la categoría de la tarea
+    setTimeout(() => {
+      const taskRef = taskRefs[task.id];
+      if (taskRef && taskRef.current) {
+        taskRef.current.measureLayout(
+          scrollViewRef.current,
+          (x, y) => {
+            scrollViewRef.current?.scrollTo({ y, animated: true });
+          },
+          (error) => console.error("Error al medir la tarea:", error)
+        );
+      }
+    }, 300);
+  };
 
   // Nueva función para manejar el guardado de tareas
   const handleSaveTask = (task) => {
@@ -366,6 +389,8 @@ export default function MainTaskScreen({ navigation, route }) {
     const uniqueTasks = Array.from(new Set(categoryTasks.map((t) => t.id))).map(
       (id) => categoryTasks.find((t) => t.id === id)
     );
+
+    const taskRefs = {};
   
     return (
       <View key={category} style={styles.categorySection}>
@@ -373,9 +398,7 @@ export default function MainTaskScreen({ navigation, route }) {
           <Text style={styles.categoryTitle}>
             {category.charAt(0).toUpperCase() + category.slice(1)}
           </Text>
-          <TouchableOpacity
-            onPress={() => setCalendarVisible(true)}
-          >
+          <TouchableOpacity onPress={() => setCalendarVisible(true)}>
             <Image
               source={require("../assets/calendar-icon.png")}
               style={styles.calendarIcon}
@@ -384,20 +407,27 @@ export default function MainTaskScreen({ navigation, route }) {
         </View>
   
         {/* Renderiza las tareas únicas */}
-        {uniqueTasks.map((task, index) => (
-          <TaskCard
-            key={task.id || `task-${index}`}
-            task={task}
-            onMove={handleMoveTask}
-            onEdit={() => {
-              setCurrentTask(task);
-              setModalVisible(true);
-            }}
-            onDelete={(taskId) =>
-              setTasks(tasks.filter((t) => t.id !== taskId))
-            }
-          />
-        ))}
+        {uniqueTasks.map((task, index) => {
+          if (!taskRefs[task.id]) {
+            taskRefs[task.id] = React.createRef();
+          }
+          
+          return (
+            <TaskCard
+              key={task.id || `task-${index}`}
+              ref={taskRefs[task.id]} 
+              task={task}
+              onMove={handleMoveTask}
+              onEdit={() => {
+                setCurrentTask(task);
+                setModalVisible(true);
+              }}
+              onDelete={(taskId) =>
+                setTasks(tasks.filter((t) => t.id !== taskId))
+              }
+            />
+          );
+        })}
       </View>
     );
   };
@@ -456,8 +486,19 @@ export default function MainTaskScreen({ navigation, route }) {
           <View style={styles.calendarModal}>
             <Calendar
               markedDates={markedDates}
+              markingType="multi-dot" 
               onDayPress={(day) => {
-                console.log("Fecha seleccionada:", day.dateString);
+                setSelectedDate(day.dateString); // Guarda la fecha seleccionada
+
+                const formatted = `${day.day}/${day.month}/${day.year}`; // Formato como el que usas en dueDate
+                const tasksForDay = tasks.filter(
+                  (t) => t.dueDate === formatted
+                );
+                if (tasksForDay.length > 0) {
+                  handleTaskSelectionFromCalendar(tasksForDay[0]); // Selecciona la primera tarea del día
+                } else {
+                  console.log("No hay tareas para esta fecha.");
+                }
               }}
               style={styles.calendar}
             />
@@ -799,5 +840,4 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 16,
   },
-  
 });

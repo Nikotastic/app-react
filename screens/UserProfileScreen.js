@@ -17,7 +17,7 @@ export default function UserProfileScreen({ navigation }) {
     name: '',
     email: '',
     role: 'Desarrollador',
-    avatar: 'https://st3.depositphotos.com/1007566/13175/v/450/depositphotos_131750410-stock-illustration-woman-female-avatar-character.jpg'
+    
   });
   const [isEditing, setIsEditing] = useState(false);
 
@@ -30,7 +30,7 @@ export default function UserProfileScreen({ navigation }) {
       navigation.setOptions({
         headerRight: () => (
           <Image 
-            source={{ uri: user.avatar }} 
+            source={{ uri: user.avatar   }} 
             style={{ width: 40, height: 40, borderRadius: 20, marginRight: 10 }}
           />
         )
@@ -82,13 +82,12 @@ export default function UserProfileScreen({ navigation }) {
   
       // Actualiza el estado del usuario
       setUser({ ...user, avatar: newAvatar });
-  
-      // Guarda el avatar en AsyncStorage
       try {
-        await AsyncStorage.setItem('userAvatar', newAvatar);
-      } catch (error) {
-        console.error('Error al guardar el avatar:', error);
-      }
+      await AsyncStorage.setItem('userAvatar', newAvatar);
+    } catch (error) {
+      console.error('Error al guardar el avatar:', error);
+    }
+      
     }
   };
   return (

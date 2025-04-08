@@ -12,16 +12,19 @@ import {
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { AntDesign } from "@expo/vector-icons";
+/* 
 import * as Google from "expo-auth-session/providers/google";
 import { auth } from "../firebaseConfig";
 import { GoogleAuthProvider, signInWithCredential } from "firebase/auth";
 import * as AuthSession from "expo-auth-session";
+*/
 
 const { width } = Dimensions.get("window");
 
 export default function SignInScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
 
+  /*
   const redirectUri = AuthSession.makeRedirectUri({
     useProxy: true,
   });
@@ -55,6 +58,7 @@ export default function SignInScreen({ navigation }) {
         });
     }
   }, [response]);
+  */
 
   return (
     <View style={styles.container}>
@@ -78,6 +82,7 @@ export default function SignInScreen({ navigation }) {
         <Text style={styles.title}>{"<DevList>"}</Text>
         <Text style={styles.subtitle}>Sign in with Google to continue</Text>
 
+        {/* 
         <TouchableOpacity
           style={[styles.googleButton, loading && { opacity: 0.7 }]}
           onPress={() => promptAsync()}
@@ -92,6 +97,7 @@ export default function SignInScreen({ navigation }) {
             </>
           )}
         </TouchableOpacity>
+        */}
       </View>
     </View>
   );

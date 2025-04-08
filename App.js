@@ -7,7 +7,7 @@ import * as SplashScreen from "expo-splash-screen";
 import MainTaskScreen from "./screens/MainTaskScreen";
 import SplashScreenComponent from "./screens/SplashScreen";
 import UserProfileScreen from "./screens/UserProfileScreen";
-import SignInScreen from "./screens/SignInScreen";
+/*import SignInScreen from "./screens/SignInScreen";  */
 import * as WebBrowser from 'expo-web-browser';
 
 console.log(AuthSession.makeRedirectUri({ useProxy: true }));
@@ -49,12 +49,12 @@ export default function App() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="SignIn">
-        <Stack.Screen
+      <Stack.Navigator>
+        {/* <Stack.Screen
           name="SignIn"
           component={SignInScreen}
           options={{ headerShown: false }}
-        />
+        /> */}
         <Stack.Screen
           name="Gestor de tareas"
           component={MainTaskScreen}
