@@ -689,6 +689,9 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     color: "#FFF",
+  },
+  addButtonText: {
+    color: "#FFF",
     fontWeight: "600",
   },
   profileButton: {
@@ -864,16 +867,16 @@ const styles = StyleSheet.create({
   // Estilos para el modal
   modalBackground: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
   },
   modalContainer: {
     backgroundColor: "#FFF",
     borderRadius: 12,
-    padding: 20,
+    padding: 10,
     width: "90%",
-    maxHeight: "80%",
+    maxHeight: "100%",
   },
   modalTitle: {
     fontSize: 18,
@@ -925,6 +928,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     marginBottom: 15,
+    
   },
   dateButtonText: {
     color: "#333",
@@ -950,6 +954,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
     marginRight: 8,
+    marginTop: 10,
+   
   },
   saveButton: {
     backgroundColor: "#007bff",
@@ -958,9 +964,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
     marginLeft: 8,
+    marginTop: 10,
+    
   },
   disabledButton: {
-    backgroundColor: "#A9A9A9",
+    backgroundColor: "#28a745",
   },
   buttonText: {
     color: "#FFF",
@@ -989,13 +997,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
-  },
-  modalContainer: {
-    backgroundColor: "#FFF",
-    borderRadius: 12,
-    padding: 20,
-    width: "90%",
-    maxHeight: "80%",
   },
   modalTitle: {
     fontSize: 18,
