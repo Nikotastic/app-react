@@ -10,13 +10,14 @@ import {
   StyleSheet,
   PanResponder,
   Image,
+  Dimensions,
 } from "react-native";
 import { Calendar } from "react-native-calendars";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect } from "@react-navigation/native"; 
 
 // Componente individual de Tarea
-const TaskCard = React.forwardRef(({ task, onMove, onEdit, onDelete }, ref) => {
+const TaskCard = ({ task, onMove, onEdit, onDelete }) => {
   const getPriorityColor = () => {
     switch (task.priority) {
       case "alta":
@@ -65,7 +66,6 @@ const TaskCard = React.forwardRef(({ task, onMove, onEdit, onDelete }, ref) => {
 
   return (
     <Animated.View
-      ref={ref} // Asigna la referencia
       {...panResponder.panHandlers}
       style={[
         styles.taskCard,
@@ -103,7 +103,7 @@ const TaskCard = React.forwardRef(({ task, onMove, onEdit, onDelete }, ref) => {
       </View>
     </Animated.View>
   );
-});
+};
 
 // Modal para crear/editar tareas
 const TaskFormModal = ({ visible, task, onSave, onClose }) => {
@@ -135,7 +135,7 @@ const TaskFormModal = ({ visible, task, onSave, onClose }) => {
   const handleSave = () => {
     const today = formatDate(new Date());
     const updatedTask = {
-      id: task ? task.id : Date.now().toString(),
+      id: task ? task.id : Date.now().toString(), 
       title,
       description,
       priority,
@@ -252,14 +252,38 @@ export default function MainTaskScreen({ navigation, route }) {
   const [tasks, setTasks] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [currentTask, setCurrentTask] = useState(null);
-  const [currentCategory, setCurrentCategory] = useState("pendiente");
+  const [activeTab, setActiveTab] = useState("pendiente"); // Estado para la pestaña activa
   const [markedDates, setMarkedDates] = useState({});
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [avatar, setAvatar] = useState(null);
   const scrollViewRef = useRef(null);
-  const taskRefs = useRef({}); // Usar useRef para almacenar referencias a las tareas
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [tasksForSelectedDate, setTasksForSelectedDate] = useState([]);
+
+  // Función para convertir formato DD/MM/YYYY a YYYY-MM-DD
+  const convertDateFormat = (dateString) => {
+    if (!dateString) return null;
+    const parts = dateString.split('/');
+    if (parts.length !== 3) return null;
+    
+    const day = parts[0].padStart(2, '0');
+    const month = parts[1].padStart(2, '0');
+    const year = parts[2];
+    
+    return `${year}-${month}-${day}`;
+  };
+  
+  // Función para obtener color por estado
+  const getCategoryColor = (status) => {
+    switch (status) {
+      case "pendiente":
+        return "#FF4B4B"; // Rojo
+      case "proceso":
+        return "#FFB946"; // Amarillo
+      case "terminado":
+        return "#4CAF50"; // Verde
+      default:
+        return "#007bff"; // Azul por defecto
+    }
+  };
 
   useFocusEffect(
     React.useCallback(() => {
@@ -309,51 +333,45 @@ export default function MainTaskScreen({ navigation, route }) {
     }
   }, [tasks]);
 
+
   // Actualizar fechas marcadas en el calendario
   useEffect(() => {
     const updateMarkedDates = () => {
       const newMarkedDates = {};
+      
+      // Agrupar tareas por fecha
       tasks.forEach((task) => {
-        if (task.dueDate) {
-          const formattedDate = task.dueDate.split("/").reverse().join("-");
-          const color =
-            task.priority === "alta"
-              ? "#FF4B4B"
-              : task.priority === "media"
-              ? "#FFB946"
-              : "#4CAF50";
-          if (!newMarkedDates[formattedDate]) {
-            newMarkedDates[formattedDate] = {
-              dots: [{ color }], // Agrega un círculo de color
-              selected: false,
-            };
-          } else {
-            newMarkedDates[formattedDate].dots.push({ color });
-          }
+        if (!task.dueDate) return;
+        
+        const formattedDate = convertDateFormat(task.dueDate);
+        if (!formattedDate) return;
+        
+        if (!newMarkedDates[formattedDate]) {
+          newMarkedDates[formattedDate] = {
+            dots: [],
+            marked: true
+          };
+        }
+        
+        // Verificar si ya existe un punto para este estado
+        const statusExists = newMarkedDates[formattedDate].dots.some(
+          dot => dot.color === getCategoryColor(task.status)
+        );
+        
+        // Si no existe, añadir el punto
+        if (!statusExists) {
+          newMarkedDates[formattedDate].dots.push({
+            key: task.status,
+            color: getCategoryColor(task.status)
+          });
         }
       });
+      
       setMarkedDates(newMarkedDates);
     };
 
     updateMarkedDates();
   }, [tasks]);
-
-  // Función para manejar la selección de una tarea desde el calendario
-  const handleTaskSelectionFromCalendar = (task) => {
-    setCurrentCategory(task.status); // Cambia a la categoría de la tarea
-    setTimeout(() => {
-      const taskRef = taskRefs[task.id];
-      if (taskRef && taskRef.current) {
-        taskRef.current.measureLayout(
-          scrollViewRef.current,
-          (x, y) => {
-            scrollViewRef.current?.scrollTo({ y, animated: true });
-          },
-          (error) => console.error("Error al medir la tarea:", error)
-        );
-      }
-    }, 300);
-  };
 
   // Nueva función para manejar el guardado de tareas
   const handleSaveTask = (task) => {
@@ -371,11 +389,18 @@ export default function MainTaskScreen({ navigation, route }) {
     setTasks((prevTasks) =>
       prevTasks.map((task) => {
         if (task.id === taskId) {
-          const newStatus =
-            direction === "down"
-              ? categories[categories.indexOf(task.status) + 1]
-              : categories[categories.indexOf(task.status) - 1];
-          return { ...task, status: newStatus || task.status };
+          const currentIndex = categories.indexOf(task.status);
+          let newIndex;
+          
+          if (direction === "down" && currentIndex < categories.length - 1) {
+            newIndex = currentIndex + 1;
+          } else if (direction === "up" && currentIndex > 0) {
+            newIndex = currentIndex - 1;
+          } else {
+            newIndex = currentIndex;
+          }
+          
+          return { ...task, status: categories[newIndex] };
         }
         return task;
       })
@@ -389,8 +414,6 @@ export default function MainTaskScreen({ navigation, route }) {
     const uniqueTasks = Array.from(new Set(categoryTasks.map((t) => t.id))).map(
       (id) => categoryTasks.find((t) => t.id === id)
     );
-
-    const taskRefs = {};
   
     return (
       <View key={category} style={styles.categorySection}>
@@ -398,7 +421,9 @@ export default function MainTaskScreen({ navigation, route }) {
           <Text style={styles.categoryTitle}>
             {category.charAt(0).toUpperCase() + category.slice(1)}
           </Text>
-          <TouchableOpacity onPress={() => setCalendarVisible(true)}>
+          <TouchableOpacity
+            onPress={() => setCalendarVisible(true)}
+          >
             <Image
               source={require("../assets/calendar-icon.png")}
               style={styles.calendarIcon}
@@ -407,15 +432,10 @@ export default function MainTaskScreen({ navigation, route }) {
         </View>
   
         {/* Renderiza las tareas únicas */}
-        {uniqueTasks.map((task, index) => {
-          if (!taskRefs[task.id]) {
-            taskRefs[task.id] = React.createRef();
-          }
-          
-          return (
+        {uniqueTasks.length > 0 ? (
+          uniqueTasks.map((task, index) => (
             <TaskCard
               key={task.id || `task-${index}`}
-              ref={taskRefs[task.id]} 
               task={task}
               onMove={handleMoveTask}
               onEdit={() => {
@@ -426,8 +446,10 @@ export default function MainTaskScreen({ navigation, route }) {
                 setTasks(tasks.filter((t) => t.id !== taskId))
               }
             />
-          );
-        })}
+          ))
+        ) : (
+          <Text style={styles.emptyListText}>No hay tareas en esta categoría</Text>
+        )}
       </View>
     );
   };
@@ -455,53 +477,163 @@ export default function MainTaskScreen({ navigation, route }) {
             onPress={() => navigation.navigate("Profile")}
           >
             <Image
-              source={{ uri: "https://via.placeholder.com/150" }}
+              source={{ uri: avatar || "https://via.placeholder.com/150" }}
               style={styles.profileIcon}
             />
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView
-        ref={scrollViewRef}
-        style={styles.taskListContainer}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.taskListContent}
-      >
+      {/* Barra de navegación */}
+      <View style={styles.categoryTabs}>
         {categories.map((category) => (
-          <React.Fragment key={category}>
-            {renderTasksByCategory(category)}
-          </React.Fragment>
+          <TouchableOpacity
+            key={category}
+            style={[
+              styles.categoryTab,
+              activeTab === category && styles.categoryTabActive,
+            ]}
+            onPress={() => {
+              setActiveTab(category);
+              setCalendarVisible(false);
+            }}
+          >
+            <Text
+              style={[
+                styles.categoryTabText,
+                activeTab === category && styles.categoryTabTextActive,
+              ]}
+            >
+              {category.charAt(0).toUpperCase() + category.slice(1)}
+            </Text>
+          </TouchableOpacity>
         ))}
-      </ScrollView>
+        
+        <TouchableOpacity
+          style={[
+            styles.categoryTab,
+            activeTab === "calendario" && styles.categoryTabActive,
+          ]}
+          onPress={() => {
+            setActiveTab("calendario");
+            setCalendarVisible(true);
+          }}
+        >
+          <Text
+            style={[
+              styles.categoryTabText,
+              activeTab === "calendario" && styles.categoryTabTextActive,
+            ]}
+          >
+            Calendario
+          </Text>
+        </TouchableOpacity>
+      </View>
 
-      {/* Modal para mostrar el calendario */}
+      {/* Contenido principal - Tareas o Calendario */}
+      {activeTab !== "calendario" ? (
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.taskListContainer}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.taskListContent}
+        >
+          {renderTasksByCategory(activeTab)}
+        </ScrollView>
+      ) : (
+        <View style={styles.calendarContainer}>
+          <Calendar
+            markingType={'multi-dot'}
+            markedDates={markedDates}
+            onDayPress={(day) => {
+              console.log("Fecha seleccionada:", day.dateString);
+              // Aquí puedes mostrar tareas para la fecha seleccionada
+              const selectedTasks = tasks.filter(task => {
+                const formattedDate = convertDateFormat(task.dueDate);
+                return formattedDate === day.dateString;
+              });
+              
+              if (selectedTasks.length > 0) {
+                console.log("Tareas para esta fecha:", selectedTasks);
+                // Aquí podrías mostrar un modal con las tareas de ese día
+              }
+            }}
+            style={styles.fullCalendar}
+            theme={{
+              todayTextColor: '#007bff',
+              arrowColor: '#007bff',
+              dotColor: '#007bff',
+              selectedDotColor: '#ffffff'
+            }}
+          />
+          
+          {/* Leyenda de colores */}
+          <View style={styles.calendarLegend}>
+            <Text style={styles.legendTitle}>Estados:</Text>
+            <View style={styles.legendItems}>
+              {categories.map(category => (
+                <View key={category} style={styles.legendItem}>
+                  <View 
+                    style={[
+                      styles.legendDot, 
+                      { backgroundColor: getCategoryColor(category) }
+                    ]} 
+                  />
+                  <Text style={styles.legendText}>
+                    {category.charAt(0).toUpperCase() + category.slice(1)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* Modal para mostrar el calendario (mantenerlo por compatibilidad) */}
       <Modal
         animationType="slide"
         transparent={true}
-        visible={calendarVisible}
+        visible={calendarVisible && activeTab !== "calendario"}
         onRequestClose={() => setCalendarVisible(false)}
       >
         <View style={styles.modalBackground}>
           <View style={styles.calendarModal}>
             <Calendar
+              markingType={'multi-dot'}
               markedDates={markedDates}
-              markingType="multi-dot" 
               onDayPress={(day) => {
-                setSelectedDate(day.dateString); // Guarda la fecha seleccionada
-
-                const formatted = `${day.day}/${day.month}/${day.year}`; // Formato como el que usas en dueDate
-                const tasksForDay = tasks.filter(
-                  (t) => t.dueDate === formatted
-                );
-                if (tasksForDay.length > 0) {
-                  handleTaskSelectionFromCalendar(tasksForDay[0]); // Selecciona la primera tarea del día
-                } else {
-                  console.log("No hay tareas para esta fecha.");
-                }
+                console.log("Fecha seleccionada:", day.dateString);
+                // Aquí puedes mostrar tareas para la fecha seleccionada
               }}
               style={styles.calendar}
+              theme={{
+                todayTextColor: '#007bff',
+                arrowColor: '#007bff',
+                dotColor: '#007bff',
+                selectedDotColor: '#ffffff'
+              }}
             />
+            
+            {/* Leyenda de colores para el modal */}
+            <View style={styles.calendarLegend}>
+              <Text style={styles.legendTitle}>Estados:</Text>
+              <View style={styles.legendItems}>
+                {categories.map(category => (
+                  <View key={category} style={styles.legendItem}>
+                    <View 
+                      style={[
+                        styles.legendDot, 
+                        { backgroundColor: getCategoryColor(category) }
+                      ]} 
+                    />
+                    <Text style={styles.legendText}>
+                      {category.charAt(0).toUpperCase() + category.slice(1)}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+            
             <TouchableOpacity
               style={styles.closeButton}
               onPress={() => setCalendarVisible(false)}
@@ -522,7 +654,6 @@ export default function MainTaskScreen({ navigation, route }) {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   // Estilos para la pantalla principal
   container: {
@@ -577,25 +708,28 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
 
-  // Estilos para pestañas de categoría
+  // Estilos para pestañas de categoría (actualizados)
   categoryTabs: {
     flexDirection: "row",
     backgroundColor: "#FFF",
-    paddingHorizontal: 10,
+    paddingHorizontal: 5,
     borderBottomWidth: 1,
     borderBottomColor: "#EEE",
+    justifyContent: "space-between",
   },
   categoryTab: {
     paddingVertical: 15,
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     borderBottomWidth: 2,
     borderBottomColor: "transparent",
+    flex: 1,
+    alignItems: "center",
   },
   categoryTabActive: {
     borderBottomColor: "#007bff",
   },
   categoryTabText: {
-    fontSize: 16,
+    fontSize: 14,
     color: "#666",
   },
   categoryTabTextActive: {
@@ -623,6 +757,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     color: "#333",
+  },
+  emptyListText: {
+    textAlign: "center",
+    color: "#999",
+    fontStyle: "italic",
+    padding: 20,
   },
   taskCount: {
     backgroundColor: "#DDD",
@@ -685,6 +825,42 @@ const styles = StyleSheet.create({
     padding: 5,
   },
 
+  // Estilos para leyenda del calendario
+  calendarLegend: {
+    marginTop: 15,
+    padding: 10,
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#eee",
+  },
+  legendTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 8,
+    color: "#333",
+  },
+  legendItems: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    flexWrap: "wrap",
+  },
+  legendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 12,
+    marginBottom: 5,
+  },
+  legendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 6,
+  },
+  legendText: {
+    fontSize: 14,
+    color: "#666",
+  },
   // Estilos para el modal
   modalBackground: {
     flex: 1,
@@ -791,11 +967,15 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 16,
   },
-  calendar: {
-    marginBottom: 15,
+  calendarContainer: {
+    flex: 1,
+    padding: 15,
+  },
+  fullCalendar: {
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#DDD",
+    height: '100%',
   },
   calendarModal: {
     backgroundColor: "#FFF",

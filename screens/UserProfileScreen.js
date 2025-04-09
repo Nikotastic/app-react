@@ -42,27 +42,33 @@ export default function UserProfileScreen({ navigation }) {
   const loadUserData = async () => {
     try {
       const userData = await AsyncStorage.getItem('user');
+      const userAvatar = await AsyncStorage.getItem('userAvatar'); // Cargar avatar desde AsyncStorage
       if (userData) {
-        setUser(JSON.parse(userData));
+        const parsedUser = JSON.parse(userData);
+        setUser({ ...parsedUser, avatar: userAvatar || parsedUser.avatar }); // Combinar datos del usuario y avatar
+      } else if (userAvatar) {
+        setUser((prevUser) => ({ ...prevUser, avatar: userAvatar })); 
       }
     } catch (error) {
       console.error('Error loading user data:', error);
     }
   };
-
+  
   const saveUserData = async () => {
     try {
       await AsyncStorage.setItem('user', JSON.stringify(user));
+      if (user.avatar) {
+        await AsyncStorage.setItem('userAvatar', user.avatar);
+      }
+      Alert.alert('Éxito', 'Los datos del usuario se han guardado correctamente.');
       setIsEditing(false);
-      Alert.alert('Éxito', 'Perfil actualizado correctamente');
     } catch (error) {
-      console.error('Error saving user data:', error);
-      Alert.alert('Error', 'No se pudo guardar la información');
+      console.error('Error al guardar los datos del usuario:', error);
+      Alert.alert('Error', 'Hubo un problema al guardar los datos del usuario.');
     }
   };
-
+  
   const pickImage = async () => {
-    // Solicita permisos para acceder a la galería
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
   
     if (!permissionResult.granted) {
@@ -70,24 +76,22 @@ export default function UserProfileScreen({ navigation }) {
       return;
     }
   
-    // Abre la galería para seleccionar una imagen
     let result = await ImagePicker.launchImageLibraryAsync({
       allowsEditing: true,
-      aspect: [1, 1], // Relación de aspecto 1:1 para imágenes cuadradas
-      quality: 1, // Calidad máxima
+      aspect: [1, 1],
+      quality: 1,
     });
   
     if (!result.canceled) {
       const newAvatar = result.assets[0].uri;
   
-      // Actualiza el estado del usuario
-      setUser({ ...user, avatar: newAvatar });
+      setUser({ ...user, avatar: newAvatar }); // Actualizar el estado del usuario
       try {
-      await AsyncStorage.setItem('userAvatar', newAvatar);
-    } catch (error) {
-      console.error('Error al guardar el avatar:', error);
-    }
-      
+        await AsyncStorage.setItem('userAvatar', newAvatar); // Guardar avatar en AsyncStorage
+        await AsyncStorage.setItem('user', JSON.stringify({ ...user, avatar: newAvatar })); // Guardar usuario completo
+      } catch (error) {
+        console.error('Error al guardar el avatar:', error);
+      }
     }
   };
   return (
