@@ -31,38 +31,38 @@ const TaskCard = ({ task, onMove, onEdit, onDelete }) => {
     }
   };
 
-  const pan = useRef(new Animated.ValueXY()).current;
+const pan = useRef(new Animated.ValueXY()).current;
 
-  const panResponder = PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onPanResponderMove: (evt, gestureState) => {
-      if (Math.abs(gestureState.dy) > 30) {
-        Animated.event([null, { dy: pan.y }], { useNativeDriver: false })(
-          evt,
-          gestureState
-        );
-      }
-    },
-    onPanResponderRelease: (evt, gestureState) => {
-      if (Math.abs(gestureState.dy) > 100) {
-        const direction = gestureState.dy > 0 ? "down" : "up";
+const panResponder = PanResponder.create({
+  onStartShouldSetPanResponder: () => true,
+  onPanResponderMove: (evt, gestureState) => {
+    if (Math.abs(gestureState.dx) > 30) {
+      Animated.event([null, { dx: pan.x }], { useNativeDriver: false })(
+        evt,
+        gestureState
+      );
+    }
+  },
+  onPanResponderRelease: (evt, gestureState) => {
+    if (Math.abs(gestureState.dx) > 100) {
+      const direction = gestureState.dx > 0 ? "right" : "left";
 
-        Animated.timing(pan, {
-          toValue: { x: 0, y: direction === "down" ? 300 : -300 },
-          duration: 300,
-          useNativeDriver: false,
-        }).start(() => {
-          onMove(task.id, direction); // Llama a la función para mover la tarea
-          pan.setValue({ x: 0, y: 0 }); // Reinicia la posición
-        });
-      } else {
-        Animated.spring(pan, {
-          toValue: { x: 0, y: 0 },
-          useNativeDriver: false,
-        }).start();
-      }
-    },
-  });
+      Animated.timing(pan, {
+        toValue: { x: direction === "right" ? 300 : -300, y: 0 },
+        duration: 300,
+        useNativeDriver: false,
+      }).start(() => {
+        onMove(task.id, direction); // Cambia tu lógica para manejar 'left' o 'right'
+        pan.setValue({ x: 0, y: 0 }); // Reinicia la posición
+      });
+    } else {
+      Animated.spring(pan, {
+        toValue: { x: 0, y: 0 },
+        useNativeDriver: false,
+      }).start();
+    }
+  },
+});
 
   return (
     <Animated.View
@@ -70,7 +70,7 @@ const TaskCard = ({ task, onMove, onEdit, onDelete }) => {
       style={[
         styles.taskCard,
         {
-          transform: [{ translateY: pan.y }], // Cambia a translateY para movimiento vertical
+          transform: [{ translateX: pan.x }], 
           borderLeftColor: getPriorityColor(),
           borderLeftWidth: 5,
         },
@@ -391,21 +391,22 @@ export default function MainTaskScreen({ navigation, route }) {
         if (task.id === taskId) {
           const currentIndex = categories.indexOf(task.status);
           let newIndex;
-          
-          if (direction === "down" && currentIndex < categories.length - 1) {
+  
+          if (direction === "right" && currentIndex < categories.length - 1) {
             newIndex = currentIndex + 1;
-          } else if (direction === "up" && currentIndex > 0) {
+          } else if (direction === "left" && currentIndex > 0) {
             newIndex = currentIndex - 1;
           } else {
             newIndex = currentIndex;
           }
-          
+  
           return { ...task, status: categories[newIndex] };
         }
         return task;
       })
     );
   };
+  
 
   const renderTasksByCategory = (category) => {
     const categoryTasks = tasks.filter((task) => task.status === category);

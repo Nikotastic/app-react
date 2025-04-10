@@ -167,7 +167,7 @@ export default function UserProfileScreen({ navigation }) {
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Rol:</Text>
-                <Text style={styles.infoValue}>{user.role}</Text>
+                <Text style={styles.infoValue}>{"Desarrollador"}</Text>
               </View>
             </>
           )}
@@ -206,7 +206,7 @@ export default function UserProfileScreen({ navigation }) {
         </View>
         <TouchableOpacity
           style={[styles.button, styles.close]}
-          onPress={() => navigation.navigate("Home")}
+          onPress={() => navigation.navigate("SignIn")}
         >
           <Text style={styles.buttonText}>Cerrar Sesión</Text>
         </TouchableOpacity>

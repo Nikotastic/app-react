@@ -1,15 +1,12 @@
 {
   "expo": {
-    "name": "TaskPro",
-    "slug": "task-pro",
+    "name": "DevList",
+    "slug": "DevList",
     "owner": "nikotastic12",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "jsEngine": "hermes",
-    "experiments": {
-      "newArchEnabled": true
-    },
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",

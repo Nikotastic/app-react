@@ -1,4 +1,4 @@
-import * as AuthSession from "expo-auth-session"; 
+
 import React, { useEffect, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
@@ -7,13 +7,13 @@ import * as SplashScreen from "expo-splash-screen";
 import MainTaskScreen from "./screens/MainTaskScreen";
 import SplashScreenComponent from "./screens/SplashScreen";
 import UserProfileScreen from "./screens/UserProfileScreen";
-/*import SignInScreen from "./screens/SignInScreen";  */
-import * as WebBrowser from 'expo-web-browser';
+import SignInScreen from "./screens/SignInScreen"; 
 
-console.log(AuthSession.makeRedirectUri({ useProxy: true }));
+
+
 
 const Stack = createStackNavigator();
-WebBrowser.maybeCompleteAuthSession();
+
 // Mantener el splash nativo de Expo visible
 
 export default function App() {
@@ -50,11 +50,11 @@ export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator>
-        {/* <Stack.Screen
+        <Stack.Screen
           name="SignIn"
           component={SignInScreen}
           options={{ headerShown: false }}
-        /> */}
+        />
         <Stack.Screen
           name="Gestor de tareas"
           component={MainTaskScreen}
