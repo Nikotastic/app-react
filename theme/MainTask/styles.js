@@ -1,6 +1,8 @@
-// Estilos actualizados de la aplicación
-const styles = StyleSheet.create({
-  // Estilos para la pantalla principal
+import { StyleSheet } from "react-native";
+import colors from "./colors";
+
+// Estilos base que pueden ser extendidos o modificados
+const baseStyles = {
   container: {
     flex: 1,
     backgroundColor: "#F5F7FB",
@@ -12,74 +14,73 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 15,
-    backgroundColor: "#FFF",
+    backgroundColor: colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: "#EEE",
+    borderBottomColor: colors.gray200,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#333",
+    color: colors.dark,
   },
   headerActions: {
     flexDirection: "row",
     alignItems: "center",
   },
   addButton: {
-    backgroundColor: "#007bff",
+    backgroundColor: colors.primary,
     paddingHorizontal: 15,
     paddingVertical: 8,
     borderRadius: 8,
     marginRight: 10,
   },
   addButtonText: {
-    color: "#FFF",
+    color: colors.white,
     fontWeight: "600",
   },
   profileButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#EEE",
+    backgroundColor: colors.gray200,
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
     borderWidth: 2,
-    borderColor: "#007bff",
+    borderColor: colors.primary,
   },
   profileIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
   },
-
-  // Estilos para pestañas de categoría
   categoryTabs: {
     flexDirection: "row",
-    backgroundColor: "#FFF",
-    paddingHorizontal: 10,
+    backgroundColor: colors.white,
+    paddingHorizontal: 5,
     borderBottomWidth: 1,
-    borderBottomColor: "#EEE",
+    borderBottomColor: colors.gray200,
+    justifyContent: "space-between",
   },
   categoryTab: {
     paddingVertical: 15,
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     borderBottomWidth: 2,
     borderBottomColor: "transparent",
+    flex: 1,
+    alignItems: "center",
   },
   categoryTabActive: {
-    borderBottomColor: "#007bff",
+    borderBottomColor: colors.primary,
   },
   categoryTabText: {
-    fontSize: 16,
-    color: "#666",
+    fontSize: 14,
+    color: colors.gray600,
   },
   categoryTabTextActive: {
     fontWeight: "600",
-    color: "#007bff",
+    color: colors.primary,
   },
-
-  // Estilos para listas de tareas
   taskListContainer: {
     flex: 1,
   },
@@ -98,23 +99,20 @@ const styles = StyleSheet.create({
   categoryTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#333",
+    color: colors.dark,
   },
-  taskCount: {
-    backgroundColor: "#DDD",
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    color: "#666",
+  emptyListText: {
+    textAlign: "center",
+    color: colors.gray500,
+    fontStyle: "italic",
+    padding: 20,
   },
-
-  // Estilos para tarjetas de tareas
   taskCard: {
-    backgroundColor: "#FFF",
+    backgroundColor: colors.white,
     borderRadius: 8,
     padding: 15,
     marginBottom: 12,
-    shadowColor: "#000",
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -124,11 +122,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 5,
-    color: "#333",
+    color: colors.dark,
   },
   taskDescription: {
     fontSize: 14,
-    color: "#666",
+    color: colors.gray600,
     marginBottom: 10,
   },
   taskDates: {
@@ -138,14 +136,14 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 12,
-    color: "#888",
+    color: colors.gray500,
   },
   priorityTag: {
     alignSelf: "flex-start",
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 4,
-    color: "#FFF",
+    color: colors.white,
     fontSize: 10,
     fontWeight: "600",
     marginBottom: 10,
@@ -154,26 +152,59 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     borderTopWidth: 1,
-    borderTopColor: "#EEE",
+    borderTopColor: colors.gray200,
     paddingTop: 10,
   },
   actionButton: {
     padding: 5,
   },
-
-  // Estilos para el modal
+  calendarLegend: {
+    marginTop: 15,
+    padding: 10,
+    backgroundColor: colors.white,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.gray200,
+  },
+  legendTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 8,
+    color: colors.dark,
+  },
+  legendItems: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    flexWrap: "wrap",
+  },
+  legendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 12,
+    marginBottom: 5,
+  },
+  legendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 6,
+  },
+  legendText: {
+    fontSize: 14,
+    color: colors.gray600,
+  },
   modalBackground: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
   },
   modalContainer: {
-    backgroundColor: "#FFF",
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 20,
     width: "90%",
-    maxHeight: "80%",
+    maxHeight: "100%",
   },
   modalTitle: {
     fontSize: 18,
@@ -183,7 +214,7 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: "#DDD",
+    borderColor: colors.gray300,
     borderRadius: 8,
     padding: 12,
     marginBottom: 15,
@@ -196,7 +227,7 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 16,
     marginBottom: 8,
-    color: "#333",
+    color: colors.dark,
   },
   prioritySelector: {
     flexDirection: "row",
@@ -210,10 +241,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginHorizontal: 4,
     borderWidth: 1,
-    borderColor: "#DDD",
+    borderColor: colors.gray300,
   },
   priorityButtonSelected: {
-    borderColor: "#007bff",
+    borderColor: colors.primary,
     borderWidth: 2,
   },
   priorityButtonText: {
@@ -221,26 +252,33 @@ const styles = StyleSheet.create({
   },
   dateButton: {
     borderWidth: 1,
-    borderColor: "#DDD",
+    borderColor: colors.gray300,
     borderRadius: 8,
     padding: 12,
     marginBottom: 15,
   },
   dateButtonText: {
-    color: "#333",
+    color: colors.dark,
   },
   calendar: {
-    marginBottom: 15,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#DDD",
+    borderColor: colors.gray300,
+    backgroundColor: colors.white,
+    padding: 10,
+    marginBottom: 14,
+  },
+  calendarIcon: {
+    width: 24,
+    height: 24,
+    tintColor: colors.primary,
   },
   modalButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
   },
   cancelButton: {
-    backgroundColor: "#6c757d",
+    backgroundColor: colors.secondary,
     borderRadius: 8,
     padding: 12,
     alignItems: "center",
@@ -248,7 +286,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   saveButton: {
-    backgroundColor: "#007bff",
+    backgroundColor: colors.primary,
     borderRadius: 8,
     padding: 12,
     alignItems: "center",
@@ -256,53 +294,52 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   disabledButton: {
-    backgroundColor: "#A9A9A9",
+    opacity: 0.6,
   },
   buttonText: {
-    color: "#FFF",
+    color: colors.white,
     fontWeight: "600",
     fontSize: 16,
   },
-  calendar: {
-    marginBottom: 15,
+  calendarContainer: {
+    flex: 1,
+    padding: 15,
+  },
+  fullCalendar: {
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#DDD",
+    borderColor: colors.gray300,
+    height: 320,
   },
-  modalBackground: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContainer: {
-    backgroundColor: "#FFF",
+  calendarModal: {
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 20,
     width: "90%",
-    maxHeight: "80%",
+    height: "60%",
+    maxHeight: "100%",
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 15,
-    textAlign: "center",
-  },
-  modalText: {
-    fontSize: 16,
-    marginBottom: 10,
-    color: "#333",
-  },
-  cancelButton: {
-    backgroundColor: "#6c757d",
+  closeButton: {
+    marginTop: 15,
+    backgroundColor: colors.primary,
     borderRadius: 8,
     padding: 12,
     alignItems: "center",
-    marginTop: 15,
   },
-  buttonText: {
-    color: "#FFF",
+  closeButtonText: {
+    color: colors.white,
     fontWeight: "600",
     fontSize: 16,
   },
-});
+};
+
+// Crear y exportar los estilos
+export const styles = StyleSheet.create(baseStyles);
+
+// Hook para usar los estilos y colores
+export const useTheme = () => {
+  return {
+    styles,
+    colors,
+  };
+};

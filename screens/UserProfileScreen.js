@@ -2,50 +2,58 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  StyleSheet,
-  TextInput,
   TouchableOpacity,
-  Image,
   ScrollView,
+  Image,
   Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
+import styles from "../theme/UserProfile/styles";
+import ProfileHeader from "../components/UserProfile/ProfileHeader";
+import ProfileInfo from "../components/UserProfile/ProfileInfo";
 
+// Componente principal de la pantalla de perfil
 export default function UserProfileScreen({ navigation }) {
+
+  // Estado local del usuario
   const [user, setUser] = useState({
     name: "",
     email: "",
     role: "Desarrollador",
   });
+
   const [isEditing, setIsEditing] = useState(false);
 
+  // Al montar el componente, carga los datos guardados del usuario
   useEffect(() => {
     loadUserData();
   }, []);
 
+  // Cada vez que cambia el avatar se actualiza el avatar
   useEffect(() => {
-    const updateNavigationAvatar = () => {
-      navigation.setOptions({
-        headerRight: () => (
-          <Image
-            source={{ uri: user.avatar }}
-            style={{ width: 40, height: 40, borderRadius: 20, marginRight: 10 }}
-          />
-        ),
-      });
-    };
-    updateNavigationAvatar();
+    navigation.setOptions({
+      headerRight: () => (
+        <Image
+          source={{ uri: user.avatar }}
+          style={{ width: 40, height: 40, borderRadius: 20, marginRight: 10 }}
+        />
+      ),
+    });
   }, [user.avatar, navigation]);
 
+  // Función que carga los datos del usuario desde AsyncStorage
   const loadUserData = async () => {
     try {
       const userData = await AsyncStorage.getItem("user");
-      const userAvatar = await AsyncStorage.getItem("userAvatar"); // Cargar avatar desde AsyncStorage
+      const userAvatar = await AsyncStorage.getItem("userAvatar");
+
       if (userData) {
         const parsedUser = JSON.parse(userData);
-        setUser({ ...parsedUser, avatar: userAvatar || parsedUser.avatar }); // Combinar datos del usuario y avatar
+        // Combina los datos cargados con el avatar 
+        setUser({ ...parsedUser, avatar: userAvatar || parsedUser.avatar });
       } else if (userAvatar) {
+        // Si solo hay avatar, lo agrega al estado
         setUser((prevUser) => ({ ...prevUser, avatar: userAvatar }));
       }
     } catch (error) {
@@ -53,129 +61,84 @@ export default function UserProfileScreen({ navigation }) {
     }
   };
 
+  // Función para guardar los datos editados del usuario
   const saveUserData = async () => {
     try {
-      await AsyncStorage.setItem("user", JSON.stringify(user));
+      await AsyncStorage.setItem("user", JSON.stringify(user)); // Guarda usuario
       if (user.avatar) {
-        await AsyncStorage.setItem("userAvatar", user.avatar);
+        await AsyncStorage.setItem("userAvatar", user.avatar); // Guarda avatar si hay
       }
-      Alert.alert(
-        "Éxito",
-        "Los datos del usuario se han guardado correctamente."
-      );
-      setIsEditing(false);
+      Alert.alert("Éxito", "Los datos del usuario se han guardado correctamente.");
+      setIsEditing(false); 
     } catch (error) {
       console.error("Error al guardar los datos del usuario:", error);
-      Alert.alert(
-        "Error",
-        "Hubo un problema al guardar los datos del usuario."
-      );
+      Alert.alert("Error", "Hubo un problema al guardar los datos del usuario.");
     }
   };
 
+  // Función para seleccionar una nueva imagen de perfil
   const pickImage = async () => {
-    const permissionResult =
-      await ImagePicker.requestMediaLibraryPermissionsAsync();
-
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
-      Alert.alert(
-        "Permiso denegado",
-        "Se necesita acceso a la galería para seleccionar una imagen."
-      );
+      Alert.alert("Permiso denegado", "Se necesita acceso a la galería para seleccionar una imagen.");
       return;
     }
 
+    // Abre la galería para seleccionar una imagen
     let result = await ImagePicker.launchImageLibraryAsync({
       allowsEditing: true,
       aspect: [1, 1],
       quality: 1,
     });
 
+    // Si el usuario seleccionó una imagen, se actualiza el avatar
     if (!result.canceled) {
       const newAvatar = result.assets[0].uri;
+      setUser({ ...user, avatar: newAvatar });
 
-      setUser({ ...user, avatar: newAvatar }); // Actualizar el estado del usuario
       try {
-        await AsyncStorage.setItem("userAvatar", newAvatar); // Guardar avatar en AsyncStorage
-        await AsyncStorage.setItem(
-          "user",
-          JSON.stringify({ ...user, avatar: newAvatar })
-        ); // Guardar usuario completo
+        // Guarda avatar y usuario con el nuevo avatar
+        await AsyncStorage.setItem("userAvatar", newAvatar);
+        await AsyncStorage.setItem("user", JSON.stringify({ ...user, avatar: newAvatar }));
       } catch (error) {
         console.error("Error al guardar el avatar:", error);
       }
     }
   };
+
   return (
     <View style={styles.container}>
+      
+      {/* Header superior con botón de regreso */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Text style={styles.backButtonText}>← Volver</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Perfil de Usuario</Text>
       </View>
 
+      {/* Contenedor desplazable con toda la información */}
       <ScrollView style={styles.content}>
-        <View style={styles.profileHeader}>
-          <TouchableOpacity onPress={pickImage}>
-            <Image source={{ uri: user.avatar }} style={styles.avatar} />
-          </TouchableOpacity>
-          {!isEditing ? (
-            <Text style={styles.username}>{user.name || "Usuario"}</Text>
-          ) : (
-            <TextInput
-              style={styles.input}
-              value={user.name}
-              onChangeText={(text) => setUser({ ...user, name: text })}
-              placeholder="Nombre"
-            />
-          )}
-        </View>
 
-        <View style={styles.profileInfo}>
-          <Text style={styles.sectionTitle}>Información Personal</Text>
+        {/* El avatar y el nombre */}
+        <ProfileHeader
+          avatar={user.avatar}
+          name={user.name}
+          isEditing={isEditing}
+          onPickImage={pickImage}
+          onNameChange={(text) => setUser({ ...user, name: text })}
+        />
 
-          {isEditing ? (
-            <>
-              <Text style={styles.inputLabel}>Email:</Text>
-              <TextInput
-                style={styles.input}
-                value={user.email}
-                onChangeText={(text) => setUser({ ...user, email: text })}
-                placeholder="Email"
-                keyboardType="email-address"
-              />
+        {/* Información del perfil*/}
+        <ProfileInfo
+          email={user.email}
+          role={user.role}
+          isEditing={isEditing}
+          onEmailChange={(text) => setUser({ ...user, email: text })}
+          onRoleChange={(text) => setUser({ ...user, role: text })}
+        />
 
-              <Text style={styles.inputLabel}>Rol:</Text>
-              <TextInput
-                style={styles.input}
-                value={user.role}
-                onChangeText={(text) => setUser({ ...user, role: text })}
-                placeholder="Rol"
-              />
-            </>
-          ) : (
-            <>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Email:</Text>
-                <Text style={styles.infoValue}>
-                  {user.email || "No configurado"}
-                </Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Rol:</Text>
-                <Text style={styles.infoValue}>{"Desarrollador"}</Text>
-              </View>
-            </>
-          )}
-
-
-          
-        </View>
-
+        {/* Botones de guardar/cancelar o editar */}
         <View style={styles.buttonContainer}>
           {isEditing ? (
             <>
@@ -188,7 +151,7 @@ export default function UserProfileScreen({ navigation }) {
               <TouchableOpacity
                 style={[styles.button, styles.cancelButton]}
                 onPress={() => {
-                  loadUserData();
+                  loadUserData(); 
                   setIsEditing(false);
                 }}
               >
@@ -204,6 +167,8 @@ export default function UserProfileScreen({ navigation }) {
             </TouchableOpacity>
           )}
         </View>
+
+        {/* Botón para cerrar sesión */}
         <TouchableOpacity
           style={[styles.button, styles.close]}
           onPress={() => navigation.navigate("SignIn")}
@@ -214,131 +179,3 @@ export default function UserProfileScreen({ navigation }) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F5F7FB",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingTop: 50,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    backgroundColor: "#EEE",
-    borderBottomWidth: 1,
-    borderBottomColor: "#EEE",
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#333",
-    flex: 1,
-    textAlign: "center",
-    marginRight: 40,
-  },
-  backButton: {
-    padding: 5,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: "#007bff",
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-  },
-  profileHeader: {
-    alignItems: "center",
-    marginBottom: 30,
-  },
-  avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    marginBottom: 15,
-    borderWidth: 3,
-    borderColor: "#007bff",
-  },
-  username: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  profileInfo: {
-    backgroundColor: "#FFF",
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 15,
-    color: "#333",
-  },
-  infoRow: {
-    flexDirection: "row",
-    marginBottom: 10,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
-  },
-  infoLabel: {
-    flex: 1,
-    fontSize: 16,
-    color: "#666",
-  },
-  infoValue: {
-    flex: 2,
-    fontSize: 16,
-    color: "#333",
-  },
-  inputLabel: {
-    fontSize: 16,
-    marginBottom: 5,
-    color: "#666",
-  },
-  close: {
-    backgroundColor: "#E05247",
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#DDD",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 15,
-    fontSize: 16,
-    backgroundColor: "#FAFAFA",
-  },
-  buttonContainer: {
-    marginTop: 10,
-    marginBottom: 30,
-  },
-  button: {
-    borderRadius: 8,
-    padding: 15,
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  editButton: {
-    backgroundColor: "#007bff",
-  },
-  saveButton: {
-    backgroundColor: "#28a745",
-  },
-  cancelButton: {
-    backgroundColor: "#6c757d",
-  },
-  buttonText: {
-    color: "#FFF",
-    fontWeight: "600",
-    fontSize: 16,
-  },
-});

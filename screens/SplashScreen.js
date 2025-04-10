@@ -1,29 +1,32 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import LottieView from 'lottie-react-native';
-import * as SplashScreen from 'expo-splash-screen'; 
+import LottieView from 'lottie-react-native'; // Para reproducir animaciones .json tipo Lottie
+import * as SplashScreen from 'expo-splash-screen'; // Para controlar el splash nativo de Expo
 
+//callback para navegar luego del splash
 export default function SplashScreenComponent({ onFinish }) {
-  const animationRef = useRef(null);
+  const animationRef = useRef(null); 
 
   useEffect(() => {
-    // ✅ Oculta el splash nativo de Expo
+    // Oculta el splash screen nativo de Expo 
     SplashScreen.hideAsync();
 
-    // Espera 7 segundos y luego llama a onFinish
+    // Inicia un temporizador para que después de 7 segundos se ejecute onFinish()
     const timer = setTimeout(() => {
-      animationRef.current?.pause(); // Opcional: pausar la animación
-      onFinish(); // Ir a la siguiente pantalla
-    }, 7000);
+      animationRef.current?.pause(); 
+      onFinish(); // Llama a la función pasada por props para ir a la siguiente pantalla
+    }, 7000); // 7 segundos
 
-    return () => clearTimeout(timer); // Limpia el temporizador
+    // Limpieza del temporizador si el componente se desmonta antes de terminar
+    return () => clearTimeout(timer);
   }, []);
 
   return (
     <View style={styles.splashContainer}>
+      {/* Animación de Lottie que se reproduce automáticamente en bucle */}
       <LottieView
         ref={animationRef}
-        source={require('../assets/animacion.json')}
+        source={require('../assets/animacion.json')} 
         style={styles.lottieAnimation}
         autoPlay
         loop={true}
@@ -33,6 +36,7 @@ export default function SplashScreenComponent({ onFinish }) {
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   splashContainer: {
